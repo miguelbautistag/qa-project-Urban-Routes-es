@@ -5,7 +5,6 @@ from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
 
 # no modificar
 def retrieve_phone_code(driver) -> str:
@@ -90,7 +89,7 @@ class UrbanRoutesPage:
             EC.element_to_be_clickable(self.request_taxi_button)
         ).click()
 
-    #Select Tarif
+    #Select Comfort
     def select_comfort_fare(self):
         self.wait.until(EC.element_to_be_clickable(self.comfort_button)).click()
 
@@ -121,8 +120,6 @@ class UrbanRoutesPage:
         self.driver.find_element(*self.add_button).click()
         close_btn = self.wait.until(EC.element_to_be_clickable(self.payment_modal_close_button))
         close_btn.click()
-
-
 
     #Message to Driver
     def message_to_driver(self):
@@ -162,7 +159,7 @@ class TestUrbanRoutes:
         assert routes_page.get_from() == address_from
         assert routes_page.get_to() == address_to
 
-#2 Test Request Taxi
+#2 Test Request Taxi (Comfort)
     def test_select_comfort_fare(self):
         self.driver.get(data.urban_routes_url)
         routes_page = UrbanRoutesPage(self.driver)
@@ -185,7 +182,7 @@ class TestUrbanRoutes:
         print(f"Código de confirmación obtenido: {confirmation_code}")
         routes_page.enter_verification_code(confirmation_code)
 
-#4 Test Add Payment Method
+#4 Test Change Payment Method
     def test_change_payment_method(self):
         self.driver.get(data.urban_routes_url)
         routes_page = UrbanRoutesPage(self.driver)
@@ -201,7 +198,7 @@ class TestUrbanRoutes:
         routes_page.change_payment_method()
 
 #5 Test Message Driver
-    def test_Message_Driver(self):
+    def test_message_driver(self):
         self.driver.get(data.urban_routes_url)
         routes_page = UrbanRoutesPage(self.driver)
         routes_page.set_from(data.address_from)
@@ -216,8 +213,8 @@ class TestUrbanRoutes:
         routes_page.change_payment_method()
         routes_page.message_to_driver()
 
-#6 y 7 Test Request Blanket, Tishue and Ice Creams
-    def test_Request_Blanket(self):
+#6 & 7 Test Request Blanket, Tishue and Ice Creams
+    def test_request_blanket(self):
         self.driver.get(data.urban_routes_url)
         routes_page = UrbanRoutesPage(self.driver)
         routes_page.set_from(data.address_from)
