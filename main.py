@@ -1,9 +1,11 @@
+import time
 import data
 from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
 
 # no modificar
 def retrieve_phone_code(driver) -> str:
@@ -39,7 +41,9 @@ class UrbanRoutesPage:
     from_field = (By.ID, 'from')
     to_field = (By.ID, 'to')
     request_taxi_button = (By.CSS_SELECTOR, ".button.round")
-    comfort_button = (By.CSS_SELECTOR, "div.tcard.active")
+    tariff_container = (By.CLASS_NAME, "tariff-container")
+    comfort_button = (By.XPATH,
+                      '//div[@class="tcard-title" and text()="Comfort"]/ancestor::div[contains(@class, "tcard")]')
     phone_button = (By.CLASS_NAME, 'np-button')
     phone_input = (By.ID, 'phone')
     phone_submit = (By.CSS_SELECTOR, '.button.full')
@@ -51,9 +55,9 @@ class UrbanRoutesPage:
     card_code = (By.CSS_SELECTOR, 'input#code.card-input')
     card_box = (By.CLASS_NAME, 'card-wrapper')
     add_button = (By.XPATH, '//button[@class="button full" and text()="Agregar"]')
-    close_button = (By.CSS_SELECTOR, '.close-button.section-close')
+    payment_modal_close_button = (By.XPATH, '(//div[contains(@class, "payment-picker") and contains(@class, "open")]//button[contains(@class, "close-button") and contains(@class, "section-close")])[1]')
     message_driver = (By.ID, 'comment')
-    blanket_and_tishue = (By.CLASS_NAME, 'slider round')
+    blanket_and_tishue_locator = (By.CSS_SELECTOR, '.slider.round')
     ice_cream = (By.CLASS_NAME, 'counter-plus')
     book_taxi_button = (By.CLASS_NAME, 'smart-button-main')
 
@@ -115,25 +119,25 @@ class UrbanRoutesPage:
         self.wait.until(EC.visibility_of_element_located(self.card_code)).send_keys(data.card_code)
         self.driver.find_element(*self.card_box).click()
         self.driver.find_element(*self.add_button).click()
-        self.wait.until(EC.presence_of_element_located(self.close_button))
-        close_btn = self.driver.find_element(*self.close_button)
-        self.driver.execute_script("arguments[0].click();", close_btn)
+        close_btn = self.wait.until(EC.element_to_be_clickable(self.payment_modal_close_button))
+        close_btn.click()
+
+
 
     #Message to Driver
     def message_to_driver(self):
-        self.driver.find_element(*self.message_driver).click()
-        self.driver.find_element(*self.message_driver).send_keys(data.message_for_driver)
+        self.wait.until(EC.visibility_of_element_located(self.message_driver)).send_keys(data.message_for_driver)
 
     #Requests
     def add_blanket_and_tishue(self):
-        self.driver.find_element(*self.blanket_and_tishue).click()
+        self.wait.until(EC.visibility_of_element_located(self.blanket_and_tishue_locator)).click()
         self.driver.find_element(*self.ice_cream).click()
         self.driver.find_element(*self.ice_cream).click()
 
     #Request Taxi
     def click_book_taxi_button(self):
         self.driver.find_element(*self.book_taxi_button).click()
-
+        time.sleep(3)
 
 class TestUrbanRoutes:
 
@@ -159,14 +163,6 @@ class TestUrbanRoutes:
         assert routes_page.get_to() == address_to
 
 #2 Test Request Taxi
-    def test_request_taxi(self):
-        self.driver.get(data.urban_routes_url)
-        routes_page = UrbanRoutesPage(self.driver)
-        routes_page.set_from(data.address_from)
-        routes_page.set_to(data.address_to)
-        routes_page.click_request_taxi()
-
-#3 Test Select Comfort
     def test_select_comfort_fare(self):
         self.driver.get(data.urban_routes_url)
         routes_page = UrbanRoutesPage(self.driver)
@@ -175,7 +171,7 @@ class TestUrbanRoutes:
         routes_page.click_request_taxi()
         routes_page.select_comfort_fare()
 
-#4 Test Fill Phone Number
+#3 Test Fill Phone Number
     def test_fill_phone_number(self):
         self.driver.get(data.urban_routes_url)
         routes_page = UrbanRoutesPage(self.driver)
@@ -189,7 +185,7 @@ class TestUrbanRoutes:
         print(f"Código de confirmación obtenido: {confirmation_code}")
         routes_page.enter_verification_code(confirmation_code)
 
-#5 Test Add Payment Method
+#4 Test Add Payment Method
     def test_change_payment_method(self):
         self.driver.get(data.urban_routes_url)
         routes_page = UrbanRoutesPage(self.driver)
@@ -204,7 +200,56 @@ class TestUrbanRoutes:
         routes_page.enter_verification_code(confirmation_code)
         routes_page.change_payment_method()
 
-#6
+#5 Test Message Driver
+    def test_Message_Driver(self):
+        self.driver.get(data.urban_routes_url)
+        routes_page = UrbanRoutesPage(self.driver)
+        routes_page.set_from(data.address_from)
+        routes_page.set_to(data.address_to)
+        routes_page.click_request_taxi()
+        routes_page.select_comfort_fare()
+        routes_page.click_phone_number()
+        routes_page.enter_fill_phone_number()
+        confirmation_code = retrieve_phone_code(self.driver)
+        print(f"Código de confirmación obtenido: {confirmation_code}")
+        routes_page.enter_verification_code(confirmation_code)
+        routes_page.change_payment_method()
+        routes_page.message_to_driver()
+
+#6 y 7 Test Request Blanket, Tishue and Ice Creams
+    def test_Request_Blanket(self):
+        self.driver.get(data.urban_routes_url)
+        routes_page = UrbanRoutesPage(self.driver)
+        routes_page.set_from(data.address_from)
+        routes_page.set_to(data.address_to)
+        routes_page.click_request_taxi()
+        routes_page.select_comfort_fare()
+        routes_page.click_phone_number()
+        routes_page.enter_fill_phone_number()
+        confirmation_code = retrieve_phone_code(self.driver)
+        print(f"Código de confirmación obtenido: {confirmation_code}")
+        routes_page.enter_verification_code(confirmation_code)
+        routes_page.change_payment_method()
+        routes_page.message_to_driver()
+        routes_page.add_blanket_and_tishue()
+
+#8 Test Window Search Taxi
+    def test_window_seach_taxi(self):
+        self.driver.get(data.urban_routes_url)
+        routes_page = UrbanRoutesPage(self.driver)
+        routes_page.set_from(data.address_from)
+        routes_page.set_to(data.address_to)
+        routes_page.click_request_taxi()
+        routes_page.select_comfort_fare()
+        routes_page.click_phone_number()
+        routes_page.enter_fill_phone_number()
+        confirmation_code = retrieve_phone_code(self.driver)
+        print(f"Código de confirmación obtenido: {confirmation_code}")
+        routes_page.enter_verification_code(confirmation_code)
+        routes_page.change_payment_method()
+        routes_page.message_to_driver()
+        routes_page.add_blanket_and_tishue()
+        routes_page.click_book_taxi_button()
 
     @classmethod
     def teardown_class(cls):
