@@ -21,7 +21,7 @@ Las pruebas replican las acciones de un usuario real al pedir un taxi, validando
 - Patrón de diseño Page Object Model (POM).  
 - Validación del código de confirmación a través del log de red (`driver.get_log('performance')`).  
 - Uso de esperas explícitas (`WebDriverWait`) y condiciones esperadas (`expected_conditions`).  
-- Pruebas funcionales automatizadas en interfaz gráfica.  
+- Validación de la interfaz gráfica mediante asserts.
 
 ## Pruebas Incluidas  
 

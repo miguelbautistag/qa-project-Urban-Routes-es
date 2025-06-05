@@ -93,6 +93,11 @@ class UrbanRoutesPage:
     def select_comfort_fare(self):
         self.wait.until(EC.element_to_be_clickable(self.comfort_button)).click()
 
+    #Assert Comfort Selection - NEW ASSERT!!
+    def verify_comfort_selected(self):
+        comfort_element = self.driver.find_element(By.XPATH, '//div[@class="tcard-title" and text()="Comfort"]')
+        assert comfort_element.is_displayed(), "La tarifa Comfort no está visible como se esperaba."
+
     #Phone Number
     def click_phone_number(self):
         self.wait.until(EC.element_to_be_clickable(self.phone_button)).click()
@@ -109,6 +114,11 @@ class UrbanRoutesPage:
         confirm_button = self.wait.until(EC.element_to_be_clickable(self.confirm_button))
         confirm_button.click()
 
+    #Assert Phone Verified - NEW ASSERT!!
+    def verify_phone_verified(self):
+        assert self.driver.find_element(
+            *self.payment_method).is_displayed(), "La verificación telefónica no redirigió a la pantalla de métodos de pago."
+
     #Add Credit Card
     def change_payment_method(self):
         self.driver.find_element(*self.payment_method).click()
@@ -121,20 +131,49 @@ class UrbanRoutesPage:
         close_btn = self.wait.until(EC.element_to_be_clickable(self.payment_modal_close_button))
         close_btn.click()
 
+    #Assert Payment method add and window closed - NEW ASSERT!!
+    def verify_payment_method_closed(self):
+        picker = self.driver.find_element(By.CLASS_NAME, 'payment-picker')
+        assert "open" not in picker.get_attribute("class"), "El modal de métodos de pago no se cerró correctamente."
+
     #Message to Driver
     def message_to_driver(self):
         self.wait.until(EC.visibility_of_element_located(self.message_driver)).send_keys(data.message_for_driver)
 
-    #Requests
+    #Assert Message to Driver - NEW ASSERT!!
+    def verify_message_sent(self, expected_message):
+        field = self.driver.find_element(*self.message_driver)
+        actual_message = field.get_attribute("value")
+        assert actual_message == expected_message, f"El mensaje al conductor no se ingresó correctamente. Esperado: '{expected_message}', pero fue: '{actual_message}'"
+
+    #Request Blanket and Tishue
     def add_blanket_and_tishue(self):
         self.wait.until(EC.visibility_of_element_located(self.blanket_and_tishue_locator)).click()
+
+    #Assert Blanket and Tishue Added: - NEW ASSERT!!
+    def verify_blanket_requested(self):
+        toggle = self.driver.find_element(*self.blanket_and_tishue_locator)
+        assert toggle.is_displayed(), "El switch de cobijas y pañuelos no se activó correctamente."
+
+    #Request 2 Ice Creams
+    def add_ice_creams(self):
         self.driver.find_element(*self.ice_cream).click()
         self.driver.find_element(*self.ice_cream).click()
+
+    #Assert Ice Cream Counter - NEW ASSERT!!
+    def verify_ice_creams(self, expected_count=2):
+        counter = self.driver.find_element(By.CLASS_NAME, 'counter-value')
+        assert counter.text == str(expected_count), f"Se esperaban {expected_count} helados, pero hay {counter.text}"
 
     #Request Taxi
     def click_book_taxi_button(self):
         self.driver.find_element(*self.book_taxi_button).click()
         time.sleep(3)
+
+    #Assert Taxi Requested - NEW ASSERT!!
+    def verify_searching_taxi(self):
+        searching = self.driver.find_element(By.CSS_SELECTOR, 'div.order.shown')
+        assert searching.is_displayed(), "No se está mostrando el mensaje de búsqueda de taxi."
 
 class TestUrbanRoutes:
 
@@ -167,6 +206,7 @@ class TestUrbanRoutes:
         routes_page.set_to(data.address_to)
         routes_page.click_request_taxi()
         routes_page.select_comfort_fare()
+        routes_page.verify_comfort_selected()
 
 #3 Test Fill Phone Number
     def test_fill_phone_number(self):
@@ -181,6 +221,7 @@ class TestUrbanRoutes:
         confirmation_code = retrieve_phone_code(self.driver)
         print(f"Código de confirmación obtenido: {confirmation_code}")
         routes_page.enter_verification_code(confirmation_code)
+        routes_page.verify_phone_verified()
 
 #4 Test Change Payment Method
     def test_change_payment_method(self):
@@ -196,6 +237,7 @@ class TestUrbanRoutes:
         print(f"Código de confirmación obtenido: {confirmation_code}")
         routes_page.enter_verification_code(confirmation_code)
         routes_page.change_payment_method()
+        routes_page.verify_payment_method_closed()
 
 #5 Test Message Driver
     def test_message_driver(self):
@@ -212,8 +254,9 @@ class TestUrbanRoutes:
         routes_page.enter_verification_code(confirmation_code)
         routes_page.change_payment_method()
         routes_page.message_to_driver()
+        routes_page.verify_message_sent(data.message_for_driver)
 
-#6 & 7 Test Request Blanket, Tishue and Ice Creams
+#6 Test Request Blanket and Tishue
     def test_request_blanket(self):
         self.driver.get(data.urban_routes_url)
         routes_page = UrbanRoutesPage(self.driver)
@@ -229,6 +272,26 @@ class TestUrbanRoutes:
         routes_page.change_payment_method()
         routes_page.message_to_driver()
         routes_page.add_blanket_and_tishue()
+        routes_page.verify_blanket_requested()
+
+#7 Test Request 2 Ice Creams  - NEW TEST INCLUDED!!
+    def test_request_ice_creams(self):
+        self.driver.get(data.urban_routes_url)
+        routes_page = UrbanRoutesPage(self.driver)
+        routes_page.set_from(data.address_from)
+        routes_page.set_to(data.address_to)
+        routes_page.click_request_taxi()
+        routes_page.select_comfort_fare()
+        routes_page.click_phone_number()
+        routes_page.enter_fill_phone_number()
+        confirmation_code = retrieve_phone_code(self.driver)
+        print(f"Código de confirmación obtenido: {confirmation_code}")
+        routes_page.enter_verification_code(confirmation_code)
+        routes_page.change_payment_method()
+        routes_page.message_to_driver()
+        routes_page.add_blanket_and_tishue()
+        routes_page.add_ice_creams()
+        routes_page.verify_ice_creams()
 
 #8 Test Window Search Taxi
     def test_window_seach_taxi(self):
@@ -246,7 +309,9 @@ class TestUrbanRoutes:
         routes_page.change_payment_method()
         routes_page.message_to_driver()
         routes_page.add_blanket_and_tishue()
+        routes_page.add_ice_creams()
         routes_page.click_book_taxi_button()
+        routes_page.verify_searching_taxi()
 
     @classmethod
     def teardown_class(cls):
